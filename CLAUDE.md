@@ -62,10 +62,24 @@ ISRs access shared state via `Mutex<RefCell<Option<T>>>` from `cortex_m::interru
 - **MCU:** STM32F446RE Nucleo
 - **Clock:** 48 MHz (HSI)
 - **Debug output:** RTT via `rprintln!()` (no UART needed for debug)
-- **USART2:** PA2 (TX), PA3 (RX) - connected to ST-LINK virtual COM at 115200 baud
+- **USART2:** PA2 (TX), PA3 (RX) - ground control commands via ST-LINK virtual COM at 115200 baud
 
 ### Memory Layout
 
 Defined in `memory.x`:
 - FLASH: 0x08000000, 512K
 - RAM: 0x20000000, 128K
+
+### Ground Control Protocol
+
+`drone::ground_control` handles USART2 RX via ISR. Frame format:
+
+| Byte | Content |
+|------|---------|
+| 0 | Start byte (`0xAA`) |
+| 1-4 | Payload |
+| 5 | (reserved for CRC) |
+
+- ISR accumulates bytes, re-syncs on `0xAA`
+- `take_frame()` returns `Option<[u8; 6]>` for main loop consumption
+- Payload must not contain `0xAA`

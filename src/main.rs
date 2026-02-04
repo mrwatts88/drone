@@ -3,7 +3,7 @@
 
 use cortex_m_rt::entry;
 use panic_halt as _;
-use rtt_target::{rprintln as println, rtt_init_print};
+use rtt_target::{rprint, rprintln as println, rtt_init_print};
 use stm32f4xx_hal::{
     pac,
     prelude::*,
@@ -36,6 +36,14 @@ fn main() -> ! {
 
     ground_control::setup(serial);
 
-    #[allow(clippy::empty_loop)]
-    loop {}
+    loop {
+        if let Some(frame) = ground_control::take_frame() {
+            for (idx, c) in frame.iter().enumerate() {
+                if idx > 0 && idx < 5 {
+                    rprint!("{}", *c as char)
+                }
+            }
+            println!("");
+        }
+    }
 }
