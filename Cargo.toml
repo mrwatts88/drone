@@ -1,0 +1,18 @@
+[package]
+name = "drone"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+embedded-hal = "1.0"
+nb = "1"
+cortex-m = "0.7"
+cortex-m-rt = "0.7"
+# Panic behaviour, see https://crates.io/keywords/panic-impl for alternatives
+panic-halt = "1.0"
+rtt-target = "0.6.2"
+
+[dependencies.stm32f4xx-hal]
+version = "0.23.0"
+features = ["stm32f446"] # replace the model of your microcontroller here
+                         # and add other required features
