@@ -49,13 +49,6 @@ The frame is fully parametric CAD. Core parts:
 - **Central plate** — holds electronics, defined by mounting holes
 - **C-profile landing legs** — integrated brackets
 
-Design principles:
-
-- Interfaces defined by hole patterns and thickness constraints
-- Parts iterate independently
-- Strength from geometry (wide pads, thinner beams, fillets), not excess material
-- Everything bolted, symmetric, manufacturable
-
 ## Electronics
 
 Deliberately minimal and explicit. No off-the-shelf flight controller PCB.
@@ -85,6 +78,59 @@ PID loops are implemented from scratch. First-class concerns:
 
 The intent is not just "it flies," but "the control path is understandable."
 
+### Embedded Peripheral Setup Pattern
+
+A practical checklist that applies across MCUs and languages:
+
+1. **Power / clocks**
+   - Enable peripheral clock (RCC)
+   - Configure clock tree if timing matters
+
+2. **Pins / routing**
+   - Configure GPIO mode (input / output / alternate / analog)
+   - Select alternate function if needed
+   - Set electrical properties (pull-ups, speed, open-drain)
+
+3. **Peripheral configuration**
+   - Configure control registers (baud rate, mode, prescalers, buffers)
+   - Clear status flags
+   - Enable the peripheral
+
+4. **Interrupt plumbing (if used)**
+   - Enable peripheral interrupt sources
+   - Enable NVIC line
+   - Set priority
+
+5. **Ownership model**
+   - Decide: polling vs interrupt vs DMA
+   - If interrupt/DMA:
+     - Move peripheral into a shared global
+     - Use `Mutex<RefCell<Option<T>>>` (or RTIC / embassy)
+
+6. **ISR**
+   - Minimal work
+   - Read status
+   - Clear flags
+   - Move data into a buffer / queue
+   - Exit
+
+7. **Application loop**
+   - Consume buffered data
+   - Perform non-real-time logic
+   - Never block ISRs
+
+Mental rule:
+
+> *Init is linear and exclusive; runtime is concurrent and constrained.*
+
+**Rust-specific refinement:**
+
+- PAC → take
+- HAL → configure
+- Split only when ownership must fragment
+- Freeze clocks
+- Move peripherals exactly once into the concurrency model
+
 ## Host Layer
 
 A non-real-time layer (computer or phone) sits above the microcontroller:
@@ -108,3 +154,8 @@ See GETTING_STARTED.md
 cargo run --release
 ```
 
+### Test UART
+
+```bash
+picocom -b 115200 /dev/ttyACM0
+```

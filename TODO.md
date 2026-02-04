@@ -1,6 +1,5 @@
 # TODO
 
-- [ ] why refcell in mutex? why not data directly or cell?
 - [ ] put CAD drawings in this repo
 - [ ] UART framing in buffer A and writing to buffer B
 - [ ] main loop validation in buffer C and writing to published intent struct
@@ -24,4 +23,5 @@
 - [x] Basic MCU bring-up
 - [x] UART communication (ST-LINK virtual COM)
 - [x] RTT debug output
+- [x] why refcell in mutex? why not data directly or cell?
 

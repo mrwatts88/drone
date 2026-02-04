@@ -142,6 +142,33 @@ _stack_start = ORIGIN(RAM) + LENGTH(RAM);
 
 Check your chip's datasheet for correct FLASH and RAM sizes.
 
+### `src/main.rs`
+
+Minimum (plus logging) needed to run a program
+
+```
+#![no_main]
+#![no_std]
+
+use panic_halt as _;
+
+use cortex_m_rt::entry;
+use rtt_target::{rprintln, rtt_init_print};
+
+#[allow(unused_imports)]
+use stm32f4xx_hal::{self};
+
+#[entry]
+fn main() -> ! {
+    rtt_init_print!();
+    rprintln!("hello from the MCU");
+
+    #[allow(clippy::empty_loop)]
+    loop {}
+}
+
+```
+
 ## Build and Flash
 
 Build only:
