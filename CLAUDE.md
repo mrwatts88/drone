@@ -63,6 +63,7 @@ ISRs access shared state via `Mutex<RefCell<Option<T>>>` from `cortex_m::interru
 - **Clock:** 48 MHz (HSI)
 - **Debug output:** RTT via `rprintln!()` (no UART needed for debug)
 - **USART2:** PA2 (TX), PA3 (RX) - ground control commands via ST-LINK virtual COM at 115200 baud
+- **TIM1:** PA8, PA9, PA10, PA11 - PWM output to ESCs at 400Hz
 
 ### Memory Layout
 
@@ -84,13 +85,20 @@ Defined in `memory.x`:
 - `take_frame()` returns `Option<ControlFrame>` for main loop consumption
 - Payload must not contain `0xAA`
 
-### Motor Intent
+### Motor Control
 
-`drone::motors` provides thread-safe storage for desired motor commands and a timer-driven control loop:
+`drone::motors` provides thread-safe storage for desired motor commands, a timer-driven control loop, and PWM output to ESCs:
 
 - `Intent` struct holds `roll`, `pitch`, `yaw`, `throttle` (all `u8`)
-- `G_INTENT` is global state using `Mutex<RefCell<Intent>>`
-- `set_intent()` / `get_intent()` provide safe access from main loop and ISRs
+- `set_intent()` writes intent from main loop (after validating ground control frames)
 - `setup(TIM2, &mut Rcc)` configures TIM2 at 1Hz and enables its interrupt
-- **TIM2:** Control loop timer ISR reads intent via `get_intent()`
-- Control flow: Ground control frame → validation → `set_intent()` → TIM2 ISR reads via `get_intent()`
+- **TIM2:** Control loop timer ISR reads intent, runs PID/mixing, and updates motor values
+- `update_esc_duty()` applies motor values to PWM channels (called from main loop)
+- Control flow: Ground control frame → validation → `set_intent()` → TIM2 ISR computes motor values → main loop calls `update_esc_duty()`
+
+### PWM / ESC Output
+
+- **TIM1:** PWM timer for ESC signals at 400Hz (2500µs period)
+- **Pins:** PA8 (CH1), PA9 (CH2), PA10 (CH3), PA11 (CH4)
+- `ESC_PERIOD_US` constant defines the PWM period
+- Motor values (pulse width in µs) are converted to duty cycle in `update_esc_duty()`

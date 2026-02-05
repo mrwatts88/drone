@@ -2,7 +2,6 @@
 
 - [ ] hardcode IMU values and compute PID
 - [ ] motor mixing calculations
-- [ ] send data to ESCs over pwm (timer and comparison register)
 - [ ] handle panic
 - [ ] put CAD drawings in this repo
 - [ ] order electronics
@@ -25,4 +24,5 @@
 - [x] UART framing in buffer A and writing to buffer B
 - [x] validate control frame in main and write to intent struct
 - [x] timer to read from intent struct
+- [x] send data to ESCs over pwm
 

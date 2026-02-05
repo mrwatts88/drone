@@ -2,12 +2,15 @@ use core::cell::RefCell;
 use cortex_m::interrupt::Mutex;
 use rtt_target::rprintln as println;
 use stm32f4xx_hal::{
+    hal_02::PwmPin,
     interrupt,
     pac::{self, Interrupt, TIM2},
     prelude::*,
     rcc::Rcc,
     timer::{CounterHz, Event},
 };
+
+pub const ESC_PERIOD_US: u16 = 2500;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Intent {
@@ -17,13 +20,14 @@ pub struct Intent {
     pub throttle: u8,
 }
 
-pub static G_INTENT: Mutex<RefCell<Intent>> = Mutex::new(RefCell::new(Intent {
+static G_INTENT: Mutex<RefCell<Intent>> = Mutex::new(RefCell::new(Intent {
     roll: 0,
     pitch: 0,
     yaw: 0,
     throttle: 0,
 }));
 
+static G_MOTOR_VALUES: Mutex<RefCell<[u16; 4]>> = Mutex::new(RefCell::new([0; 4]));
 static G_TIM: Mutex<RefCell<Option<CounterHz<TIM2>>>> = Mutex::new(RefCell::new(None));
 
 pub fn setup(timer: pac::TIM2, rcc: &mut Rcc) {
@@ -46,8 +50,28 @@ pub fn set_intent(intent: Intent) {
     });
 }
 
-pub fn get_intent() -> Intent {
-    cortex_m::interrupt::free(|cs| *G_INTENT.borrow(cs).borrow())
+pub fn update_esc_duty<
+    P1: PwmPin<Duty = u16>,
+    P2: PwmPin<Duty = u16>,
+    P3: PwmPin<Duty = u16>,
+    P4: PwmPin<Duty = u16>,
+>(
+    ch1: &mut P1,
+    ch2: &mut P2,
+    ch3: &mut P3,
+    ch4: &mut P4,
+) {
+    let motor_values = cortex_m::interrupt::free(|cs| *G_MOTOR_VALUES.borrow(cs).borrow());
+    set_esc_duty(ch1, motor_values[0]);
+    set_esc_duty(ch2, motor_values[1]);
+    set_esc_duty(ch3, motor_values[2]);
+    set_esc_duty(ch4, motor_values[3]);
+}
+
+fn set_esc_duty<P: PwmPin<Duty = u16>>(ch: &mut P, pulse_len_us: u16) {
+    let max_duty = ch.get_max_duty();
+    let ccr = (pulse_len_us as u32 * max_duty as u32 / ESC_PERIOD_US as u32) as u16;
+    ch.set_duty(ccr.min(max_duty));
 }
 
 #[interrupt]
@@ -57,7 +81,15 @@ fn TIM2() {
         cortex_m::interrupt::free(|cs| G_TIM.borrow(cs).replace(None).unwrap())
     });
 
-    let intent = get_intent();
+    let intent = cortex_m::interrupt::free(|cs| *G_INTENT.borrow(cs).borrow());
     println!("{:?}", intent);
+
+    // pid calc
+    // motor mixing
+
+    cortex_m::interrupt::free(|cs| {
+        G_MOTOR_VALUES.borrow(cs).replace([1000, 1000, 1000, 10]);
+    });
+
     let _ = tim.wait();
 }
