@@ -86,9 +86,11 @@ Defined in `memory.x`:
 
 ### Motor Intent
 
-`drone::motors` provides thread-safe storage for desired motor commands:
+`drone::motors` provides thread-safe storage for desired motor commands and a timer-driven control loop:
 
 - `Intent` struct holds `roll`, `pitch`, `yaw`, `throttle` (all `u8`)
 - `G_INTENT` is global state using `Mutex<RefCell<Intent>>`
 - `set_intent()` / `get_intent()` provide safe access from main loop and ISRs
-- Control flow: Ground control frame → validation → `set_intent()` → control loop reads via `get_intent()`
+- `setup(TIM2, &mut Rcc)` configures TIM2 at 1Hz and enables its interrupt
+- **TIM2:** Control loop timer ISR reads intent via `get_intent()`
+- Control flow: Ground control frame → validation → `set_intent()` → TIM2 ISR reads via `get_intent()`

@@ -40,6 +40,7 @@ fn main() -> ! {
     .unwrap();
 
     ground_control::setup(serial);
+    motors::setup(dp.TIM2, &mut rcc);
 
     loop {
         if let Some(frame) = ground_control::take_frame() {
