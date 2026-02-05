@@ -3,7 +3,7 @@
 
 use cortex_m_rt::entry;
 use panic_halt as _;
-use rtt_target::{rprint, rprintln as println, rtt_init_print};
+use rtt_target::{rprintln as println, rtt_init_print};
 use stm32f4xx_hal::{
     pac,
     prelude::*,
@@ -13,6 +13,11 @@ use stm32f4xx_hal::{
 
 mod drone;
 use drone::ground_control;
+
+use crate::drone::{
+    motors::{self, Intent},
+    validation::check_crc,
+};
 
 #[entry]
 fn main() -> ! {
@@ -38,12 +43,18 @@ fn main() -> ! {
 
     loop {
         if let Some(frame) = ground_control::take_frame() {
-            for (idx, c) in frame.iter().enumerate() {
-                if idx > 0 && idx < 5 {
-                    rprint!("{}", *c as char)
-                }
+            if check_crc(&frame) {
+                let intent = Intent {
+                    roll: frame[1],
+                    pitch: frame[2],
+                    yaw: frame[3],
+                    throttle: frame[4],
+                };
+
+                motors::set_intent(intent);
+            } else {
+                println!("Invalid frame");
             }
-            println!("");
         }
     }
 }

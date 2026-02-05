@@ -77,9 +77,18 @@ Defined in `memory.x`:
 | Byte | Content |
 |------|---------|
 | 0 | Start byte (`0xAA`) |
-| 1-4 | Payload |
-| 5 | (reserved for CRC) |
+| 1-4 | Payload (roll, pitch, yaw, throttle) |
+| 5 | CRC (validated via `drone::validation::check_crc`) |
 
 - ISR accumulates bytes, re-syncs on `0xAA`
-- `take_frame()` returns `Option<[u8; 6]>` for main loop consumption
+- `take_frame()` returns `Option<ControlFrame>` for main loop consumption
 - Payload must not contain `0xAA`
+
+### Motor Intent
+
+`drone::motors` provides thread-safe storage for desired motor commands:
+
+- `Intent` struct holds `roll`, `pitch`, `yaw`, `throttle` (all `u8`)
+- `G_INTENT` is global state using `Mutex<RefCell<Intent>>`
+- `set_intent()` / `get_intent()` provide safe access from main loop and ISRs
+- Control flow: Ground control frame → validation → `set_intent()` → control loop reads via `get_intent()`

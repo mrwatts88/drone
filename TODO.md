@@ -1,7 +1,7 @@
 # TODO
 
-- [ ] put CAD drawings in this repo
 - [ ] validate control frame in main and write to intent struct
+- [ ] put CAD drawings in this repo
 - [ ] timer to read from intent struct
 - [ ] order electronics
 - [ ] read from IMU over SPI
